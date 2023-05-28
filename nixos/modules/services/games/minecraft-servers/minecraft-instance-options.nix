@@ -129,6 +129,20 @@ in {
       '';
     };
 
+    parentDir = mkOption {
+      type = with types; str;
+      default = "/var/lib";
+      description = ''
+        Path to the directory which should enclose the root of this instance.
+        For example, setting this option to <literal>/opt</literal> will
+        place this instance's root folder at
+        <literal>/opt/mc-$${instanceName}</literal>. Do not include a trailing
+        slash.
+
+        Default is <literal>/var/lib</literal>.
+      '';
+    };
+
     serverConfig = mkOption {
       type = with types; submodule ./minecraft-server-properties.nix;
       description = ''

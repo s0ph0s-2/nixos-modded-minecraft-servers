@@ -49,13 +49,13 @@ with lib; let
     (mapAttrsToList mkOptionLine c);
 
   # Configure rsync access
-  mkRsyncdConf = name:
+  mkRsyncdConf = name: parentDir:
     pkgs.writeText "rsyncd-minecraft.conf" ''
-      log file = /var/lib/${mkInstanceName name}/rsync.log
+      log file = ${parentDir}/${mkInstanceName name}/rsync.log
       [${mkInstanceName name}]
       use chroot = false
       comment = Minecraft server state
-      path = /var/lib/${mkInstanceName name}
+      path = ${parentDir}/${mkInstanceName name}
       read only = false
     '';
 
@@ -89,6 +89,8 @@ in {
 
   config = let
     enabledInstances = filterAttrs (_: x: x.enable) cfg.instances;
+
+    parentDir = cfg.parentDir;
 
     # Attrset options
     eachEnabledInstance = f: mapAttrs' (i: c: nameValuePair (mkInstanceName i) (f i c)) enabledInstances;
@@ -151,18 +153,20 @@ in {
         MCRCON_PASS = "whatisloveohbabydonthurtmedonthurtmenomore";
       };
 
+      parentDir = icfg.parentDir;
+
       serviceConfig = let
         fullname = mkInstanceName name;
       in {
         Restart = "always";
-        ExecStart = "/var/lib/${fullname}/start.sh";
+        ExecStart = "${parentDir}/${fullname}/start.sh";
         ExecStop = ''
           ${pkgs.mcrcon}/bin/mcrcon stop
         '';
         TimeoutStopSec = "20";
         User = fullname;
         StateDirectory = fullname;
-        WorkingDirectory = "/var/lib/${fullname}";
+        WorkingDirectory = "${parentDir}/${fullname}";
       };
 
       preStart = ''
@@ -181,14 +185,14 @@ in {
     });
 
     users.users = eachEnabledInstance (name: icfg: let
-      rsyncCmd = ''command="rsync --config=${mkRsyncdConf name} --server --daemon .",no-agent-forwarding,no-port-forwarding,no-user-rc,no-X11-forwarding,no-pty'';
+      rsyncCmd = ''command="rsync --config=${mkRsyncdConf name icfg.parentDir} --server --daemon .",no-agent-forwarding,no-port-forwarding,no-user-rc,no-X11-forwarding,no-pty'';
     in {
       description = "Minecraft server service user for instance ${name}";
       isSystemUser = true;
       useDefaultShell = true;
       createHome = true;
       group = mkInstanceName name;
-      home = "/var/lib/${mkInstanceName name}";
+      home = "${icfg.parentDir}/${mkInstanceName name}";
       openssh.authorizedKeys.keys =
         optionals (icfg.rsyncSSHKeys != [])
         map
