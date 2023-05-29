@@ -153,10 +153,10 @@ in {
         MCRCON_PASS = "whatisloveohbabydonthurtmedonthurtmenomore";
       };
 
-      parentDir = icfg.parentDir;
 
       serviceConfig = let
         fullname = mkInstanceName name;
+        parentDir = icfg.parentDir;
       in {
         Restart = "always";
         ExecStart = "${parentDir}/${fullname}/start.sh";
